@@ -1,0 +1,482 @@
+<html>
+    <canvas id="canva" width="800" height="500"></canvas>
+</html>
+
+<style>
+    #canva{
+        border:solid 1px orange;
+
+    }
+</style>
+
+<script>
+
+
+var canvas = document.getElementById("canva")
+const ctx = canvas.getContext("2d");
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
+}
+
+
+function drawNetwork(network){
+    // draw the nodes
+    if (iter<200){
+        performLayout(network)
+        iter++;
+    }
+
+    // for(var key in network.nodes){
+    //     var n = network.nodes[key]
+    //     n.draw()
+    // }
+
+    //draw the edges
+    // for(let edge of network.edges){
+    //     var m  = network.getNodeById(edge.from)
+    //     var n = network.getNodeById(edge.to)
+    //     ctx.beginPath();
+    //     ctx.moveTo(m.x, m.y);
+    //     ctx.lineTo(n.x, n.y);
+    //     ctx.stroke();
+
+    // }
+
+
+
+}
+
+
+function clear(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+}
+
+var iter=0;
+class Network{
+    nodes={};
+    edges=[];
+
+    constructor(nodes, edges){
+        this.nodes = {}
+        this.edges = [];
+    }
+
+    addNode(node){
+        this.nodes[node.id] = node;
+    }
+
+    addEdge(edge){this.edges.push(edge)}
+
+    getNodeById(id){
+        return this.nodes[id]
+    }
+}
+
+class Node{
+    id = null;
+    x = null;
+    y = null;
+    velocity =  {x:0,y:0};
+    net_force = {x:0,y:0};
+
+    constructor(x, y, id){
+        this.x = x;
+        this.y= y;
+        this.id=id;
+    }
+
+   draw(){
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 8, 0, 2 * Math.PI);
+    ctx.fillstyle='#eee'
+    ctx.fill();
+
+    ctx.stroke();
+   }
+
+   intersect(){}
+
+}
+
+
+
+function performLayout(network){
+    var l = 100; // Natural length
+    var k = .1 // Scale?
+    var forceTotal = 0;
+
+        //attractive forces
+        for (var e of network.edges) {
+            // console.log(e)
+            var start = network.getNodeById(e.from);
+            var end = network.getNodeById(e.to);
+
+            var Ax = end.x - start.x;
+            var Ay = end.y - start.y;
+            var d = Math.sqrt((Ax * Ax) + (Ay * Ay));
+
+            var angle;
+
+            if (d != 0) {
+                angle = Math.atan2(Ay, Ax);
+            } else {
+                // For safety, assume they can't really be on exactly the same point
+                d = 0.0001;
+                angle = Math.random() * 2 * Math.PI; // TODO mootools
+            }
+
+            var force = k * (d - l);
+            var Dx = Math.cos(angle) * force;
+            var Dy = Math.sin(angle) * force;
+            start.x += Dx;
+            start.y += Dy;
+            end.x -= Dx;
+            end.y -= Dy;
+        }
+
+
+        for(var m in network.nodes){
+
+            var u,v;
+            v = network.getNodeById(m)
+            for(var n in network.nodes){
+
+                if(m !=n){
+                    u = network.getNodeById(n)
+                    var Ax = u.x - v.x;
+                    var Ay = u.y - v.y;
+                    var d = Math.sqrt((Ax * Ax) + (Ay * Ay));
+
+                    var angle;
+
+                    if (d != 0) {
+                        angle = Math.atan2(Ay, Ax);
+                    } else {
+                        // For safety, assume they can't really be on exactly the same point
+                        d = 0.0001;
+                        angle = Math.random() * 2 * Math.PI; // TODO mootools
+                    }
+
+                    var force = -1*(k*k)/ (d - l);
+                    var Dx = Math.cos(angle) * force;
+                    var Dy = Math.sin(angle) * force;
+                    v.x -= Dx;
+                    v.y -= Dy;
+                    u.x += Dx;
+                    u.y += Dy;
+
+                }
+            }
+        }
+
+
+
+        // for(var m in network.nodes){
+
+        //     var u,v;
+
+        //     v = network.getNodeById(m)
+        //     v.net_force.x = v.net_force.y = 0;
+
+        //     for(var n in network.nodes){
+
+        //         if(m !=n){
+        //             u = network.getNodeById(n)
+        //             var rsq = ((v.x-u.x)*(v.x-u.x)+(v.y-u.y)*(v.y-u.y))
+        //             v.net_force.x += 0.06*(u.x - v.x);
+        //             v.net_force.y += 0.06*(u.y - v.y);
+
+        //         }
+        //     }
+
+        //     // for(var e of network.edges){
+        //     //     var v = network.getNodeById(e.from);
+        //     //          u = network.getNodeById(e.to);
+
+        //     //     v.net_force.x += 0.06*(u.x - v.x);
+        //     //     v.net_force.y += 0.06*(u.y - v.y);
+
+        //     // }
+        //     //counting the velocity (with damping 0.85)
+        //     v.velocity.x = (v.velocity.x + v.net_force.x)*0.85;
+        //     v.velocity.y = (v.velocity.y + v.net_force.y)*0.85;
+
+
+
+        // }
+
+        clear()
+        for(var m in network.nodes){
+            var v = network.getNodeById(m)
+            v.x += v.velocity.x; v.y += v.velocity.y;
+            v.draw()
+        }
+
+
+        for(let edge of network.edges){
+            var m  = network.getNodeById(edge.from)
+            var n = network.getNodeById(edge.to)
+            ctx.beginPath();
+            ctx.moveTo(m.x, m.y);
+            // ctx.bezierCurveTo(m.x, m.y+10, n.x,n.y+10, n.x, n.y);
+            ctx.lineTo(n.x, n.y);
+            ctx.stroke();
+
+    }
+
+
+
+    }
+
+
+
+
+
+// function performLayout(network){
+//     var l = 60; // Natural length
+//     var k = .1; // Scale?
+//     var forceTotal = 0;
+//     //asuumee all nodes are laid at some positions
+//     for(var iteration=0; iteration<100; iteration++){
+//         console.log(iteration," -> iteration.")
+//         // calculate the force on each vertex
+//         for (var e of network.edges) {
+//             // console.log(e)
+// 			var start = network.getNodeById(e.from);
+// 			var end = network.getNodeById(e.to);
+
+// 			var Ax = end.x - start.x;
+// 			var Ay = end.y - start.y;
+// 			var d = Math.sqrt((Ax * Ax) + (Ay * Ay));
+
+//             var angle;
+
+// 			if (d != 0) {
+// 				angle = Math.atan2(Ay, Ax);
+// 			} else {
+// 				// For safety, assume they can't really be on exactly the same point
+// 				d = 0.0001;
+// 				angle = Math.random() * 2 * Math.PI; // TODO mootools
+// 			}
+
+// 			var force = k * (d - l);
+// 			var Dx = Math.cos(angle) * force;
+// 			var Dy = Math.sin(angle) * force;
+// 			start.x += Dx;
+// 			start.y += Dy;
+// 			end.x -= Dx;
+//             end.y -= Dy;
+//         }
+
+//         for(var m in network.nodes){
+//             for(var n in network.nodes){
+//                 if(m !=n){
+//                     m = network.getNodeById(m)
+//                     n = network.getNodeById(n)
+
+//                 }
+//             }
+//         }
+// }
+
+
+// }
+
+
+// function performLayout(network){
+//     var l = 60; // Natural length
+//     var k = .1; // Scale?
+//     var forceTotal = 0;
+//     //asuumee all nodes are laid at some positions
+//     for(var iteration=0; iteration<100; iteration++){
+//         console.log(iteration," -> iteration.")
+//         // calculate the force on each vertex
+//         for (var e of network.edges) {
+//             // console.log(e)
+// 			var start = network.getNodeById(e.from);
+// 			var end = network.getNodeById(e.to);
+
+// 			var Ax = end.x - start.x;
+// 			var Ay = end.y - start.y;
+// 			var d = Math.sqrt((Ax * Ax) + (Ay * Ay));
+
+//             var angle;
+
+// 			if (d != 0) {
+// 				angle = Math.atan2(Ay, Ax);
+// 			} else {
+// 				// For safety, assume they can't really be on exactly the same point
+// 				d = 0.0001;
+// 				angle = Math.random() * 2 * Math.PI; // TODO mootools
+// 			}
+
+// 			var force = k * (d - l);
+// 			var Dx = Math.cos(angle) * force;
+// 			var Dy = Math.sin(angle) * force;
+// 			start.x += Dx;
+// 			start.y += Dy;
+// 			end.x -= Dx;
+//             end.y -= Dy;
+//         }
+// }
+
+
+// }
+
+// function applyForces(network){
+//         // Hooke's law constants
+// 		var l = 30; // Natural length
+// 		var k = .1; // Scale?
+// 		var forceTotal = 0;
+// 		for (var e in network.edges) {
+// 			var start = network.getNodeById(e.from);
+// 			var end = network.getNodeById(e.end);
+
+// 			var Ax = end.x - start.x;
+// 			var Ay = end.y - start.y;
+
+// 			var d = Math.sqrt((Ax * Ax) + (Ay * Ay));
+
+//             var angle;
+
+// 			if (d != 0) {
+// 				angle = Math.atan2(Ay, Ax);
+// 			} else {
+// 				// For safety, assume they can't really be on exactly the same point
+// 				d = 0.0001;
+// 				angle = Math.random() * 2 * Math.PI; // TODO mootools
+// 			}
+
+// 			var force = k * (d - l);
+// 			var Dx = Math.cos(angle) * force;
+// 			var Dy = Math.sin(angle) * force;
+
+// 			start.dx += Dx;
+// 			start.dy += Dy;
+// 			end.dx -= Dx;
+// 			end.dy -= Dy;
+
+// 			forceTotal += Math.abs(force);
+
+//         console.log(forceTotal)
+// 		return forceTotal;
+
+
+
+// }
+
+function getnetwork(){
+    var nodes = [
+        { id: 1, label: "Node 1" },
+        { id: 2, label: "Node 2" },
+        { id: 3, label: "Node 3" },
+        { id: 4, label: "Node 4" },
+        { id: 5, label: "Node 5" },
+        { id: 6, label: "Node 5" },
+        { id: 7, label: "Node 5" },
+        { id: 8, label: "Node 5" },
+        { id: 9, label: "Node 5" },
+        { id: 10, label: "Node 5" },
+        { id: 11, label: "Node 5" },
+        { id: 12, label: "Node 5" },
+      ];
+
+      // create an array with edges
+    //   var edges = [
+    //     { from: 1, to: 3 },
+    //     { from: 1, to: 2 },
+    //     { from: 2, to: 4 },
+    //     { from: 2, to: 6 },
+    //     { from: 2, to: 5 },
+    //     { from: 4, to: 8 },
+    //     { from: 3, to: 6 },
+    //     { from: 3, to: 8 },
+    //     { from: 8, to: 9 },
+    //     { from: 9, to: 10 },
+    //     { from: 9, to: 7 },
+    //     { from: 3, to: 11 },
+    //     { from: 5, to: 12 },
+    //     { from: 10, to: 11 },
+    //     { from: 11, to: 3 },
+    //     { from: 12, to: 5 },
+    //   ];
+
+    var edges= [
+        {from:1, to: 2},
+        {from:1, to: 6},
+        {from:1, to: 5},
+        {from:1, to: 4},
+
+        {from:2, to: 10},
+        {from:10, to: 11},
+        {from:2, to: 3},
+        {from:2, to: 12},
+
+        {from:3, to: 8},
+        {from:3, to: 9},
+        {from:9, to: 7},
+
+
+
+
+
+
+
+
+
+    ]
+
+
+    let Xx = new Network();
+
+    for(let node of nodes){
+        var x = getRandomInt(10,700)
+        var y = getRandomInt(10,450)
+        Xx.addNode(new Node(x,y,node.id))
+    }
+
+    for(let e of edges){
+        Xx.addEdge(e)
+    }
+
+    // console.log(Xx)
+    return Xx;
+
+}
+
+var nw = getnetwork()
+function mainLoop(){
+    console.log('d')
+    // clear()
+    drawNetwork(nw)
+    // performLayout(network)
+
+
+    // window.requestAnimationFrame(mainLoop)
+
+}
+
+
+var canvas_X =  null;
+var canvas_Y = null;
+
+function doMouseDown() {
+    canvas_X = event.pageX;
+    canvas_Y = event.pageY;
+    }
+
+
+canvas.addEventListener("mousedown", doMouseDown, false);
+
+setInterval(function() {
+  // animiate something
+  mainLoop()
+}, 1000/60);
+
+// window.requestAnimationFrame(mainLoop)
+
+</script>
